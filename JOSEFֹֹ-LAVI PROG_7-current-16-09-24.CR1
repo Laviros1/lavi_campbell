@@ -1,0 +1,141 @@
+'CR1000 Series Datalogger
+'To create a different opening program template, type in new
+'instructions and select Template | Save as Default Template
+'date:
+'program author:
+
+'Declare Public Variables
+'Example:
+ Public PTemp, batt_volt
+ Public voltage1,
+ Public voltage2,
+ Public voltage3,
+ Public voltage4,
+ Public par1, par2,
+ Public Flag(8) As Boolean
+ Public current1,
+ Public current2,
+ 'Public Flag(8) As Boolean
+'Declare Other Variables
+
+'Example:
+'Dim Counter
+
+'Declare Constants
+'Example:
+'CONST PI = 3.141592654	
+  
+'Define Data Tables
+  
+	
+DataTable(voltage,true,-1)
+ 'DataInterval (0,10,min,10) 'Data callecting every 10min
+ DataInterval (0,10,min,10) 'Data callecting every 10min
+	               
+ 'DataInterval (0, 10,min, 10) Interval = 10 for "SCAN"=10 min
+ Minimum (1,batt_volt,FP2,0,False,)
+
+      Sample (1,PTemp,FP2 )
+		  Sample (1,voltage1,Long)
+		  Sample (1,voltage2,Long)
+		  Sample (1,voltage3,FP2)
+      Sample (1,voltage4,FP2)
+      Sample (1,current1,FP2)
+      Sample (1,current2,FP2)
+      Sample (1,par1,FP2)
+      Sample (1,par2,FP2)
+ EndTable
+
+'-------------------  PROG  --------------------
+
+'Main Program
+  BeginProg
+ 'all flags are for working status indication
+ Scan (10,min,0,0)  'Scan is active for 13 sec
+ 'Scan (10,min,0,0) for ordinary operation
+Flag(7)=TRUE  'Scan indication
+ Flag(6)=false 'pause finishing indication
+		            ' pause is active for 17 sec
+'measurement 
+PanelTemp (PTemp,250)
+		Battery (batt_volt)
+    'VoltSe (voltage1,1,mv5000,1,0,250,1.0,10.9,0)
+    'VoltSe (voltage2,1,mv5000,2,0,250,1.0,10.9,0)
+    'VoltSe (voltage3,1,mv5000,3,0,250,1.0,1,-2504)
+    'VoltSe (voltage4,1,mv5000,4,0,250,1.0,1,-2523)
+   ' VoltSe (par1,1,mV250,5,0,250,1.0,190,0)
+   ' VoltSe (par2,1,mV250,6,0,250,1.0,469.18,0)
+    
+    
+    
+    
+
+
+'------------------  CONTROL  -------------------
+  
+    If  TimeIntoInterval(420,1440,Min) Then Flag(1) = true     ' 7:00 start 
+        
+    If  TimeIntoInterval(1080,1440,Min) Then Flag(1) = false   ' 18:00 end 
+    
+      
+       If Flag(1) = true   Then 'Start time
+      Delay(1,1,Sec)    'start delay 
+     'Flag(5)=true 'callecting data
+     VoltSe (par1,1,mV250,5,0,250,1.0,190,0)
+     VoltSe (par2,1,mV250,6,0,250,1.0,469.18,0)
+
+'voltage measurement Panel 1 and Panel 2
+   
+     PortSet (1,0)
+     PortSet (2,0)
+     Flag(2) = true 'VOLTAGE panel-1&2
+     'multiplier =10.9 according calibration
+     VoltSe (voltage1,1,mV5000,1,1,0,250,10.9,0)
+     VoltSe (voltage2,1,mV5000,2,1,0,250,10.9,0)
+               
+       Delay (1,4,Sec) 
+       Flag(2) = false  
+     'current measurement Panel-1
+     PortSet (1,0)   
+     PortSet (2,1)
+       Flag(3)=TRUE 'current panel-1
+     'Offset = -2502.9 according calibration  
+     VoltSe (voltage3,1,mV5000,3,1,0,250,1.0,-2502.9)
+        Delay (1,4,Sec)    
+         Flag(3)= false  
+      
+      PortSet(2,0) 'reset Port2     
+        Delay(1,2,sec)
+ 
+'current measurement Panel-2
+      PortSet (1,1)
+      Delay(1,3,sec) 'delay to prevent simulteneous
+                  'relays switching ON
+      PortSet (2,1)
+        Flag(4)=true 'current panel-2
+     'Offset = -2523 according calibration 
+      VoltSe (voltage4,1,mV5000,4,1,0,250,1.0,-2523)
+             
+      Delay (1,4,Sec)
+        Flag(4)=false
+                 
+    'reset port 1&2
+        PortSet(1,0)
+        PortSet(2,0)
+    'voltage to current convertion
+    ' 25mV = 1A according to calibration
+     current1=voltage3/25
+     current2=voltage4/25
+           
+    EndIf
+      'call output tables
+     Flag(5)=true
+         CallTable voltage 
+    'Delay(1,2,Sec)
+   
+    Flag(5)=false
+    Flag(7)=FALSE 'Scan finishing indication
+    Flag(6)=true 'measurement PAUSE indication
+
+NextScan
+ 
